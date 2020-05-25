@@ -22,77 +22,100 @@ function main()
     document.body.appendChild( renderer.domElement );
 
     var vertices = [
-        [ -1, -1, -1 ], // v0
-        [ -1, -1,  1 ], // v1
-        [ -1,  1, -1 ], // v2
-        [  1, -1, -1 ], // v3
-        [ -1,  1,  1 ], // v4
-        [  1, -1,  1 ], // v5
-        [  1,  1, -1 ], // v6
-        [  1,  1,  1 ]  // v7
+        [ -1, -1, -1 ], // 0
+        [  1, -1, -1 ], // 1
+        [  1, -1,  1 ], // 2
+        [ -1, -1,  1 ], // 3
+        [ -1,  1, -1 ], // 4
+        [  1,  1, -1 ], // 5
+        [  1,  1,  1 ], // 6
+        [ -1,  1,  1 ]  // 7
     ];
 
     var faces = [
-        //[ 0, 1, 3 ], // f0
-        //[ 0, 3, 5 ], // f1
-        //[ 3, 5, 7 ], // f2
-        //[ 3, 6, 7 ], // f3
-        //[ 2, 6, 7 ], // f4
-        //[ 2, 4, 7 ], // f5
-        //[ 0, 2, 4 ], // f6
-        //[ 0, 1, 4 ], // f7
-        //[ 1, 4, 5 ], // f8
-        //[ 4, 5, 7 ], // f9
-        //[ 0, 2, 3 ], // f10
-        //[ 2, 3, 6 ], // f11
-        [ 0, 1, 2 ]
+        [ 0, 1, 2 ], // f0
+        [ 0, 2, 3 ], // f1
+        [ 7, 6, 5 ], // f2
+        [ 7, 5, 4 ], // f3
+        [ 0, 4, 1 ], // f4
+        [ 1, 4, 5 ], // f5
+        [ 1, 5, 6 ], // f6
+        [ 1, 6, 2 ], // f7
+        [ 2, 6, 3 ], // f8
+        [ 3, 6, 7 ], // f9
+        [ 0, 3, 7 ], // f10
+        [ 0, 7, 4 ], // f11
     ];
 
-    var v0 = new THREE.Vector3().fromArray( vertices[0] );
-    var v1 = new THREE.Vector3().fromArray( vertices[1] );
-    var v2 = new THREE.Vector3().fromArray( vertices[2] );
-    var id = faces[0];
-    var f0 = new THREE.Face3( id[0], id[1], id[2] );
-
     var geometry = new THREE.Geometry();
-    geometry.vertices.push( v0 );
-    geometry.vertices.push( v1 );
-    geometry.vertices.push( v2 );
-    geometry.vertices.push( v3 );
-    geometry.vertices.push( v4 );
-    geometry.vertices.push( v5 );
-    geometry.vertices.push( v6 );
-    geometry.vertices.push( v7 );
-    geometry.faces.push( f0  );
-    //geometry.faces.push( f1  );
-    //geometry.faces.push( f2  );
-    //geometry.faces.push( f3  );
-    //geometry.faces.push( f4  );
-    //geometry.faces.push( f5  );
-    //geometry.faces.push( f6  );
-    //geometry.faces.push( f7  );
-    //geometry.faces.push( f8  );
-    //geometry.faces.push( f9  );
-    //geometry.faces.push( f10 );
-    //geometry.faces.push( f11 );
-    //    var material = new THREE.MeshBasicMaterial();
     var material = new THREE.MeshLambertMaterial();
+
+    var nvertices = vertices.length;
+    for ( var i = 0; i < nvertices; i++ )
+    {
+        var vertex = new THREE.Vector3().fromArray( vertices[i] );
+        geometry.vertices.push( vertex );
+    }
+
+    var nfaces = faces.length;
+    for ( var i = 0; i < nfaces; i++ )
+    {
+        var id = faces[i];
+        var face = new THREE.Face3( id[0], id[1], id[2] );
+        geometry.faces.push( face );
+    }
+
     material.vertexColors = THREE.FaceColors;
-    geometry.faces[0].color = new THREE.Color( 1, 1, 1 );
+    for ( var i = 0; i < nfaces; i++ )
+    {
+        geometry.faces[i].color = new THREE.Color( 1, 1, 1 );
+    }
 
     geometry.computeFaceNormals();
-    material.side = THREE.FrontSide;
 
-    var triangle = new THREE.Mesh( geometry, material );
-    scene.add( triangle );
+    var cube = new THREE.Mesh( geometry, material );
+    scene.add( cube );
+    loop();
 
-    //loop();
+    document.addEventListener( 'mousedown', mouse_down_event );
+    function mouse_down_event( event )
+    {
+        // Clicked point in window coordinates.
+        // Origin of window coordinates: top-left
+        var x_win = event.clientX;
+        var y_win = event.clientY;
+	
+        // Viewport
+        var vx = renderer.domElement.offsetLeft;
+        var vy = renderer.domElement.offsetTop;
+        var vw = renderer.domElement.width;
+        var vh = renderer.domElement.height;
+	
+        // Window coordinates to normalized device coordinates
+        // Origin of NDC: center
+        var x_NDC = 2 * ( x_win - vx ) / vw - 1;
+        var y_NDC = -( 2 * ( y_win - vy ) / vh - 1 );
+	
+        // Normalized device coordinates to world coordinates
+        var p_NDC = new THREE.Vector3( x_NDC, y_NDC, 1 );
+        var p_wld = p_NDC.unproject( camera );
+	
+        var origin = camera.position;
+        var direction = p_wld.sub( camera.position ).normalize();
+        var raycaster = new THREE.Raycaster( origin, direction );
+        var intersects = raycaster.intersectObject( cube );
+        if ( intersects.length > 0 )
+        {
+            intersects[0].face.color.setRGB( 1, 0, 0 );
+            intersects[0].object.geometry.colorsNeedUpdate = true;
+        }
+    }
 
     function loop()
     {
         requestAnimationFrame( loop );
-        triangle.rotation.x += 0.001;
-        triangle.rotation.y += 0.001;
+        cube.rotation.x += 0.001;
+        cube.rotation.y += 0.001;
         renderer.render( scene, camera );
     }
 }
