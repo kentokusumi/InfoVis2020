@@ -1,4 +1,4 @@
-KVS.LobsterData = function()
+KVS.LobsterData = function() 
 {
 var volume = new KVS.StructuredVolumeObject();
 volume.resolution.x = 120;
